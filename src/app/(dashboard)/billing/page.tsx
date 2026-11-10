@@ -42,7 +42,30 @@ export default function BillingPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Master Data
+  // Branch state
+  const [branches, setBranches] = useState<any[]>([]);
+  const [posBranchId, setPosBranchId] = useState('');
+  const [branchFilter, setBranchFilter] = useState('all');
+
+  // Load branches alongside other master data
+  useEffect(() => {
+    async function loadBranches() {
+      try {
+        const res = await fetch('/api/branches');
+        const json = await res.json();
+        if (json.success) {
+          setBranches(json.data);
+          if (json.data.length > 0) {
+            setPosBranchId(json.data[0].id);
+          }
+        }
+      } catch (err) {
+        console.error('Branch load error:', err);
+      }
+    }
+    loadBranches();
+  }, []);
+
   const [customers, setCustomers] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -142,6 +165,9 @@ export default function BillingPage() {
     setLoading(true);
     try {
       let url = `/api/billing?status=${statusFilter}`;
+      if (branchFilter !== 'all') {
+        url += `&branchId=${branchFilter}`;
+      }
       if (searchQuery) url += `&search=${encodeURIComponent(searchQuery)}`;
       const res = await fetch(url);
       const json = await res.json();

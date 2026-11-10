@@ -144,7 +144,23 @@ async function main() {
     data: { name: 'Exempt 0%', rate: 0, isActive: true, isDefault: false, salonSettingsId: settings.id },
   });
 
-  // ─── 4. Staff Stylists ───────────────────────────────────
+  // ─── 5. Branches ────────────────────────────────────────
+  const branch1 = await prisma.branch.create({
+    data: {
+      name: 'Huda Market',
+      address: 'Sector 46, Gurugram',
+    },
+  });
+
+  const branch2 = await prisma.branch.create({
+    data: {
+      name: 'Spaze Corporate Work',
+      address: 'Sector 69, Gurugram',
+    },
+  });
+
+  // Assign default branch to existing invoices (if any) after seeding invoices later
+
   const staff1 = await prisma.staff.create({
     data: {
       name: 'Rahul Mehra',

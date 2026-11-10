@@ -366,6 +366,14 @@ model Purchase {
   @@index([purchaseDate])
 }
 
+// ─── Branches ─────────────────────────────────────────────────────
+model Branch {
+  id        String   @id @default(cuid())
+  name      String
+  address   String
+  invoices  Invoice[]
+}
+
 // ─── Invoices & Payments ───────────────────────────────────────────
 model Invoice {
   id              String   @id @default(cuid())
@@ -387,6 +395,8 @@ model Invoice {
 
   customer        Customer    @relation(fields: [customerId], references: [id])
   appointment     Appointment? @relation(fields: [appointmentId], references: [id])
+  branchId        String? 
+  branch          Branch? @relation(fields: [branchId], references: [id])
   items           InvoiceItem[]
   payments        Payment[]
 

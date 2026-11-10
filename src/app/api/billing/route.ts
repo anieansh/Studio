@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get('status');
     const customerId = searchParams.get('customerId');
+    const branchId = searchParams.get('branchId');
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '20', 10);
@@ -26,12 +27,8 @@ export async function GET(req: NextRequest) {
     if (customerId) {
       where.customerId = customerId;
     }
-    if (search) {
-      where.OR = [
-        { invoiceNumber: { contains: search } },
-        { customer: { name: { contains: search } } },
-        { customer: { phone: { contains: search } } },
-      ];
+    if (branchId && branchId !== 'all') {
+      where.branchId = branchId;
     }
 
     const [total, invoices] = await Promise.all([
@@ -50,6 +47,8 @@ export async function GET(req: NextRequest) {
               staff: true,
             },
           },
+          branch: true,
+
         },
       }),
     ]);
@@ -88,7 +87,9 @@ export async function POST(req: NextRequest) {
       discountValue, // number
       payments, // array of { amount, method: 'Cash'|'UPI'|'Card'|'Other', reference? }
       notes,
+      branchId,
     } = body;
+
 
     if (!customerId || !items || !items.length) {
       return NextResponse.json(
@@ -183,6 +184,7 @@ export async function POST(req: NextRequest) {
           balanceAmount,
           status,
           notes: notes || null,
+          branch: branchId ? { connect: { id: branchId } } : undefined,
           items: {
             create: processedItems,
           },
