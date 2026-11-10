@@ -31,6 +31,7 @@ async function main() {
   await prisma.permission.deleteMany({});
   await prisma.user.deleteMany({});
   await prisma.role.deleteMany({});
+  await prisma.branch.deleteMany({});
 
   // ─── 1. Roles & Permissions ───────────────────────────────
   const ownerRole = await prisma.role.create({
@@ -154,12 +155,10 @@ async function main() {
 
   const branch2 = await prisma.branch.create({
     data: {
-      name: 'Spaze Corporate Work',
+      name: 'Spaze Corporate Park',
       address: 'Sector 69, Gurugram',
     },
   });
-
-  // Assign default branch to existing invoices (if any) after seeding invoices later
 
   const staff1 = await prisma.staff.create({
     data: {
@@ -588,8 +587,8 @@ async function main() {
   // ─── 9. POS Invoices & Payment Records (7 Days + Today) ───
   console.log('Generating POS invoices, line items, and split payments...');
 
-  // Invoice 1: Today's completed appointment + Retail product
-  const inv1Subtotal = 950 + 780; // Haircut + Shampoo
+  // Invoice 1: Today – Huda Market – Women's Haircut + Shampoo
+  const inv1Subtotal = 950 + 780;
   const inv1Tax = (inv1Subtotal * 18) / 100;
   const inv1Total = inv1Subtotal + inv1Tax;
 
@@ -598,6 +597,7 @@ async function main() {
       invoiceNumber: 'LXS1001',
       customerId: cust1.id,
       appointmentId: apptToday1.id,
+      branchId: branch1.id,
       subtotal: inv1Subtotal,
       discountType: 'percentage',
       discountValue: 0,
@@ -620,9 +620,9 @@ async function main() {
     },
   });
 
-  // Invoice 2: 1 Day Ago (Split Payment: Cash + UPI)
-  const inv2Sub = 5800 + 1750; // Balayage + Hair Serum
-  const inv2Disc = 500; // Flat discount
+  // Invoice 2: 1 Day Ago – Spaze Corporate Park – Balayage + Hair Serum (Split Payment)
+  const inv2Sub = 5800 + 1750;
+  const inv2Disc = 500;
   const inv2Taxable = inv2Sub - inv2Disc;
   const inv2Tax = (inv2Taxable * 18) / 100;
   const inv2Total = inv2Taxable + inv2Tax;
@@ -631,6 +631,7 @@ async function main() {
     data: {
       invoiceNumber: 'LXS1002',
       customerId: cust6.id,
+      branchId: branch2.id,
       subtotal: inv2Sub,
       discountType: 'fixed',
       discountValue: 500,
@@ -656,8 +657,8 @@ async function main() {
     },
   });
 
-  // Invoice 3: 2 Days Ago (Gel extensions + designer nail art)
-  const inv3Sub = 3200 + 1800; // Extensions + Art
+  // Invoice 3: 2 Days Ago – Huda Market – Gel Extensions + Nail Art
+  const inv3Sub = 3200 + 1800;
   const inv3Tax = (inv3Sub * 18) / 100;
   const inv3Total = inv3Sub + inv3Tax;
 
@@ -665,6 +666,7 @@ async function main() {
     data: {
       invoiceNumber: 'LXS1003',
       customerId: cust4.id,
+      branchId: branch1.id,
       subtotal: inv3Sub,
       taxAmount: inv3Tax,
       totalAmount: inv3Total,
@@ -684,17 +686,18 @@ async function main() {
     },
   });
 
-  // Invoice 4: 3 Days Ago (Partially Paid to showcase pending payments!)
-  const inv4Sub = 6500; // Brazilian Keratin
+  // Invoice 4: 3 Days Ago – Spaze Corporate Park – Brazilian Keratin (Partially Paid)
+  const inv4Sub = 6500;
   const inv4Tax = (6500 * 18) / 100;
   const inv4Total = inv4Sub + inv4Tax;
-  const inv4Paid = 5000; // Paid 5000 advance
+  const inv4Paid = 5000;
   const inv4Bal = inv4Total - inv4Paid;
 
   await prisma.invoice.create({
     data: {
       invoiceNumber: 'LXS1004',
       customerId: cust2.id,
+      branchId: branch2.id,
       subtotal: inv4Sub,
       taxAmount: inv4Tax,
       totalAmount: inv4Total,
@@ -712,7 +715,7 @@ async function main() {
     },
   });
 
-  // Invoice 5: 4 Days Ago (Deluxe Manicure & Pedicure)
+  // Invoice 5: 4 Days Ago – Huda Market – Gel Manicure + Spa Pedicure
   const inv5Sub = 1200 + 1600;
   const inv5Tax = (inv5Sub * 18) / 100;
   const inv5Total = inv5Sub + inv5Tax;
@@ -721,6 +724,7 @@ async function main() {
     data: {
       invoiceNumber: 'LXS1005',
       customerId: cust1.id,
+      branchId: branch1.id,
       subtotal: inv5Sub,
       taxAmount: inv5Tax,
       totalAmount: inv5Total,
@@ -740,7 +744,7 @@ async function main() {
     },
   });
 
-  // Invoice 6: 5 Days Ago (Men's haircut + Pomade)
+  // Invoice 6: 5 Days Ago – Spaze Corporate Park – Men's Haircut + Pomade
   const inv6Sub = 600 + 650;
   const inv6Tax = (inv6Sub * 18) / 100;
   const inv6Total = inv6Sub + inv6Tax;
@@ -749,6 +753,7 @@ async function main() {
     data: {
       invoiceNumber: 'LXS1006',
       customerId: cust3.id,
+      branchId: branch2.id,
       subtotal: inv6Sub,
       taxAmount: inv6Tax,
       totalAmount: inv6Total,
@@ -768,7 +773,7 @@ async function main() {
     },
   });
 
-  // Invoice 7: 6 Days Ago (Moroccan Hair Spa)
+  // Invoice 7: 6 Days Ago – Huda Market – Moroccan Hair Spa
   const inv7Sub = 1600;
   const inv7Tax = (1600 * 18) / 100;
   const inv7Total = inv7Sub + inv7Tax;
@@ -777,6 +782,7 @@ async function main() {
     data: {
       invoiceNumber: 'LXS1007',
       customerId: cust4.id,
+      branchId: branch1.id,
       subtotal: inv7Sub,
       taxAmount: inv7Tax,
       totalAmount: inv7Total,
