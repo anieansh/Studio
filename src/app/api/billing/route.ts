@@ -184,7 +184,7 @@ export async function POST(req: NextRequest) {
           balanceAmount,
           status,
           notes: notes || null,
-          branch: branchId ? { connect: { id: branchId } } : undefined,
+          branchId: branchId || null,
           items: {
             create: processedItems,
           },

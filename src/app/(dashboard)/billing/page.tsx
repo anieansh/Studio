@@ -183,7 +183,7 @@ export default function BillingPage() {
 
   useEffect(() => {
     fetchInvoices();
-  }, [statusFilter, searchQuery]);
+  }, [statusFilter, searchQuery, branchFilter]);
 
   // POS Item Management
   const addServiceItem = (serviceId: string) => {
@@ -305,6 +305,7 @@ export default function BillingPage() {
           discountValue: posDiscountVal,
           payments: posPayments.filter((p) => p.amount > 0),
           notes: posNotes,
+          branchId: posBranchId || null,
         }),
       });
 
@@ -524,6 +525,29 @@ export default function BillingPage() {
         </div>
       </div>
 
+      {/* Branch Toggle */}
+      <div className="bg-white rounded-2xl px-4 py-3 border border-stone-200/80 shadow-sm flex flex-col sm:flex-row items-start sm:items-center gap-3">
+        <span className="text-xs font-semibold text-stone-500 uppercase tracking-wide shrink-0">Branch</span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {[{ id: 'all', name: 'All Branches' }, ...branches].map((b) => (
+            <button
+              key={b.id}
+              onClick={() => setBranchFilter(b.id)}
+              className={`px-4 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                branchFilter === b.id
+                  ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm'
+                  : 'bg-stone-50 text-stone-600 border-stone-200 hover:border-[#7C3AED] hover:text-[#7C3AED]'
+              }`}
+            >
+              {b.name}
+            </button>
+          ))}
+          {branches.length === 0 && (
+            <span className="text-xs text-stone-400 italic">Loading branches...</span>
+          )}
+        </div>
+      </div>
+
       {/* Invoices List */}
       {loading ? (
         <div className="h-96 bg-white rounded-2xl border border-stone-200/80 flex flex-col items-center justify-center gap-2">
@@ -554,6 +578,7 @@ export default function BillingPage() {
                   <th className="px-5 py-3">Total Amount</th>
                   <th className="px-5 py-3">Paid / Balance</th>
                   <th className="px-5 py-3">Status</th>
+                  <th className="px-5 py-3">Branch</th>
                   <th className="px-5 py-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -606,6 +631,15 @@ export default function BillingPage() {
                       >
                         {inv.status}
                       </Badge>
+                    </td>
+                    <td className="px-5 py-3.5">
+                      {inv.branch ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-medium bg-purple-50 text-purple-700 border border-purple-200">
+                          {inv.branch.name}
+                        </span>
+                      ) : (
+                        <span className="text-stone-300 text-[11px]">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-1.5">
@@ -671,6 +705,31 @@ export default function BillingPage() {
               emptyMessage="No clients found matching your search"
               required
             />
+          </div>
+
+          {/* Branch Selector */}
+          <div className="bg-stone-50 p-4 rounded-xl border border-stone-200/80">
+            <p className="text-xs font-semibold text-stone-600 mb-2">Select Branch *</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              {branches.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => setPosBranchId(b.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-semibold border transition-all ${
+                    posBranchId === b.id
+                      ? 'bg-[#7C3AED] text-white border-[#7C3AED] shadow-sm'
+                      : 'bg-white text-stone-600 border-stone-200 hover:border-[#7C3AED] hover:text-[#7C3AED]'
+                  }`}
+                >
+                  {b.name}
+                  <span className="block text-[10px] font-normal opacity-70">{b.address}</span>
+                </button>
+              ))}
+              {branches.length === 0 && (
+                <span className="text-xs text-stone-400 italic">No branches found. Please run the seed.</span>
+              )}
+            </div>
           </div>
 
           {/* Catalog Pickers: Services & Products */}
