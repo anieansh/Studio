@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
   Receipt,
   Plus,
   Search,
+  X,
   Printer,
   Download,
   IndianRupee,
@@ -26,6 +27,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -68,6 +70,39 @@ export default function BillingPage() {
     { amount: 0, method: 'UPI', reference: '' },
   ]);
   const [posNotes, setPosNotes] = useState('');
+  const [posServiceSearch, setPosServiceSearch] = useState('');
+  const [posProductSearch, setPosProductSearch] = useState('');
+
+  // Memoized Searchable Options
+  const customerOptions = useMemo(() => {
+    return customers.map((c) => ({
+      value: c.id,
+      label: c.name,
+      sublabel: c.phone,
+      badge: `Spent: ${formatCurrency(c.totalSpent)}`,
+    }));
+  }, [customers]);
+
+  const filteredServices = useMemo(() => {
+    if (!posServiceSearch.trim()) return services;
+    const q = posServiceSearch.toLowerCase().trim();
+    return services.filter(
+      (svc) =>
+        svc.name.toLowerCase().includes(q) ||
+        (svc.category && svc.category.name && svc.category.name.toLowerCase().includes(q))
+    );
+  }, [services, posServiceSearch]);
+
+  const filteredProducts = useMemo(() => {
+    if (!posProductSearch.trim()) return products;
+    const q = posProductSearch.toLowerCase().trim();
+    return products.filter(
+      (prod) =>
+        prod.name.toLowerCase().includes(q) ||
+        (prod.sku && prod.sku.toLowerCase().includes(q)) ||
+        (prod.category && prod.category.name && prod.category.name.toLowerCase().includes(q))
+    );
+  }, [products, posProductSearch]);
 
   // Check URL params for action=new or linked customer/appointment
   useEffect(() => {
@@ -600,72 +635,139 @@ export default function BillingPage() {
         <form onSubmit={handleCreateInvoice} className="space-y-5">
           {/* Top Row: Customer Selection */}
           <div className="bg-stone-50 p-4 rounded-xl border border-stone-200/80">
-            <Select
+            <SearchableSelect
               label="Select Billed Customer *"
-              placeholder="-- Choose Client --"
+              placeholder="-- Search & Choose Client --"
+              searchPlaceholder="Search client by name or phone (e.g. Meera, 99001)..."
               value={posCustomer}
-              onChange={(e) => setPosCustomer(e.target.value)}
-              options={customers.map((c) => ({
-                value: c.id,
-                label: `${c.name} (${c.phone}) - Spent: ${formatCurrency(c.totalSpent)}`,
-              }))}
+              onChange={(val) => setPosCustomer(val)}
+              options={customerOptions}
+              emptyMessage="No clients found matching your search"
+              required
             />
           </div>
 
           {/* Catalog Pickers: Services & Products */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Quick Add Salon Services */}
-            <div className="p-3.5 bg-white rounded-xl border border-stone-200 shadow-sm">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 mb-2 flex items-center gap-1.5">
-                <Scissors className="w-3.5 h-3.5" />
-                <span>Add Salon Services</span>
-              </h4>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {services.map((svc) => (
+            <div className="p-3.5 bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-purple-700 flex items-center gap-1.5">
+                  <Scissors className="w-3.5 h-3.5" />
+                  <span>Add Salon Services</span>
+                </h4>
+                <span className="text-[11px] text-stone-400 font-medium">
+                  {filteredServices.length} found
+                </span>
+              </div>
+              <div className="relative mb-2">
+                <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={posServiceSearch}
+                  onChange={(e) => setPosServiceSearch(e.target.value)}
+                  placeholder="Search service by name (e.g. Haircut, Gel, Spa)..."
+                  className="w-full pl-8 pr-7 py-1 text-xs text-stone-900 bg-stone-50/70 border border-stone-200 rounded-lg placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-primary-500 focus:bg-white transition-all"
+                />
+                {posServiceSearch && (
                   <button
-                    key={svc.id}
                     type="button"
-                    onClick={() => addServiceItem(svc.id)}
-                    className="w-full text-left p-2 rounded-lg bg-stone-50 hover:bg-purple-50 border border-stone-100 hover:border-purple-200 text-xs flex items-center justify-between transition-colors group"
+                    onClick={() => setPosServiceSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5"
                   >
-                    <span className="font-medium text-stone-800 group-hover:text-[#7C3AED]">
-                      {svc.name}
-                    </span>
-                    <span className="font-bold text-stone-900">
-                      {formatCurrency(svc.price)}
-                    </span>
+                    <X className="w-3 h-3" />
                   </button>
-                ))}
+                )}
+              </div>
+              <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1 scrollbar-thin">
+                {filteredServices.length === 0 ? (
+                  <p className="text-center py-6 text-xs text-stone-400">
+                    No services match &ldquo;{posServiceSearch}&rdquo;
+                  </p>
+                ) : (
+                  filteredServices.map((svc) => (
+                    <button
+                      key={svc.id}
+                      type="button"
+                      onClick={() => addServiceItem(svc.id)}
+                      className="w-full text-left p-2 rounded-lg bg-stone-50 hover:bg-purple-50 border border-stone-100 hover:border-purple-200 text-xs flex items-center justify-between transition-colors group"
+                    >
+                      <div className="flex flex-col truncate flex-1 pr-2">
+                        <span className="font-medium text-stone-800 group-hover:text-[#7C3AED] truncate">
+                          {svc.name}
+                        </span>
+                        {svc.category?.name && (
+                          <span className="text-[10px] text-stone-400 truncate">
+                            {svc.category.name}
+                          </span>
+                        )}
+                      </div>
+                      <span className="font-bold text-stone-900 shrink-0">
+                        {formatCurrency(svc.price)}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
 
             {/* Quick Add Retail Products */}
-            <div className="p-3.5 bg-white rounded-xl border border-stone-200 shadow-sm">
-              <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-2 flex items-center gap-1.5">
-                <Package className="w-3.5 h-3.5" />
-                <span>Add Retail Products</span>
-              </h4>
-              <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
-                {products.map((prod) => (
+            <div className="p-3.5 bg-white rounded-xl border border-stone-200 shadow-sm flex flex-col">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                  <Package className="w-3.5 h-3.5" />
+                  <span>Add Retail Products</span>
+                </h4>
+                <span className="text-[11px] text-stone-400 font-medium">
+                  {filteredProducts.length} found
+                </span>
+              </div>
+              <div className="relative mb-2">
+                <Search className="w-3.5 h-3.5 text-stone-400 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={posProductSearch}
+                  onChange={(e) => setPosProductSearch(e.target.value)}
+                  placeholder="Search products (e.g. Shampoo, Serum, SKU)..."
+                  className="w-full pl-8 pr-7 py-1 text-xs text-stone-900 bg-stone-50/70 border border-stone-200 rounded-lg placeholder:text-stone-400 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:bg-white transition-all"
+                />
+                {posProductSearch && (
                   <button
-                    key={prod.id}
                     type="button"
-                    onClick={() => addProductItem(prod.id)}
-                    className="w-full text-left p-2 rounded-lg bg-stone-50 hover:bg-emerald-50 border border-stone-100 hover:border-emerald-200 text-xs flex items-center justify-between transition-colors group"
+                    onClick={() => setPosProductSearch('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5"
                   >
-                    <div>
-                      <span className="font-medium text-stone-800 group-hover:text-emerald-700">
-                        {prod.name}
-                      </span>
-                      <span className="text-[10px] text-stone-400 block">
-                        Stock: {prod.stock} {prod.unit}
-                      </span>
-                    </div>
-                    <span className="font-bold text-stone-900">
-                      {formatCurrency(prod.sellingPrice)}
-                    </span>
+                    <X className="w-3 h-3" />
                   </button>
-                ))}
+                )}
+              </div>
+              <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1 scrollbar-thin">
+                {filteredProducts.length === 0 ? (
+                  <p className="text-center py-6 text-xs text-stone-400">
+                    No products match &ldquo;{posProductSearch}&rdquo;
+                  </p>
+                ) : (
+                  filteredProducts.map((prod) => (
+                    <button
+                      key={prod.id}
+                      type="button"
+                      onClick={() => addProductItem(prod.id)}
+                      className="w-full text-left p-2 rounded-lg bg-stone-50 hover:bg-emerald-50 border border-stone-100 hover:border-emerald-200 text-xs flex items-center justify-between transition-colors group"
+                    >
+                      <div className="flex flex-col truncate flex-1 pr-2">
+                        <span className="font-medium text-stone-800 group-hover:text-emerald-700 truncate">
+                          {prod.name}
+                        </span>
+                        <span className="text-[10px] text-stone-400 block truncate">
+                          Stock: {prod.stock} {prod.unit} {prod.sku ? `• ${prod.sku}` : ''}
+                        </span>
+                      </div>
+                      <span className="font-bold text-stone-900 shrink-0">
+                        {formatCurrency(prod.sellingPrice)}
+                      </span>
+                    </button>
+                  ))
+                )}
               </div>
             </div>
           </div>

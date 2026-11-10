@@ -25,6 +25,7 @@ import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import toast from 'react-hot-toast';
@@ -413,15 +414,19 @@ export default function CustomersPage() {
                 { value: 'Other', label: 'Other' },
               ]}
             />
-            <Select
-              label="Preferred Stylist"
+            <SearchableSelect
+              label="Preferred Artist / Stylist"
               placeholder="-- No Preference --"
+              searchPlaceholder="Search artist by name or role..."
               value={preferredStaffId}
-              onChange={(e) => setPreferredStaffId(e.target.value)}
+              onChange={(val) => setPreferredStaffId(val)}
               options={staffList.map((s) => ({
                 value: s.id,
                 label: s.name,
+                sublabel: s.role,
+                badge: s.role,
               }))}
+              clearable
             />
           </div>
 

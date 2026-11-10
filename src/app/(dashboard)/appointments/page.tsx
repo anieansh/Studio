@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Calendar as CalendarIcon,
@@ -17,12 +17,15 @@ import {
   Receipt,
   FileText,
   UserCheck,
+  Search,
+  X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Modal } from '@/components/ui/Modal';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
+import { SearchableSelect } from '@/components/ui/SearchableSelect';
 import { Spinner } from '@/components/ui/Spinner';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import {
@@ -162,6 +165,37 @@ export default function AppointmentsPage() {
       setSelectedServices([...selectedServices, id]);
     }
   };
+
+  const [serviceSearch, setServiceSearch] = useState('');
+
+  // Searchable Options
+  const customerOptions = useMemo(() => {
+    return customers.map((c) => ({
+      value: c.id,
+      label: c.name,
+      sublabel: c.phone,
+      badge: c.visitCount > 0 ? `${c.visitCount} visits` : 'New Client',
+    }));
+  }, [customers]);
+
+  const staffOptions = useMemo(() => {
+    return staffList.map((s) => ({
+      value: s.id,
+      label: s.name,
+      sublabel: s.role,
+      badge: s.role,
+    }));
+  }, [staffList]);
+
+  const filteredServicesList = useMemo(() => {
+    if (!serviceSearch.trim()) return servicesList;
+    const q = serviceSearch.toLowerCase().trim();
+    return servicesList.filter(
+      (svc) =>
+        svc.name.toLowerCase().includes(q) ||
+        (svc.category && svc.category.name && svc.category.name.toLowerCase().includes(q))
+    );
+  }, [servicesList, serviceSearch]);
 
   // Calculate calculated duration & estimated price
   const selectedServiceObjects = servicesList.filter((s) =>
@@ -613,14 +647,13 @@ export default function AppointmentsPage() {
                 />
               </div>
             ) : (
-              <Select
+              <SearchableSelect
                 placeholder="-- Search & Select Existing Customer --"
+                searchPlaceholder="Search client by name or phone (e.g. Meera, 99001)..."
                 value={selectedCustomer}
-                onChange={(e) => setSelectedCustomer(e.target.value)}
-                options={customers.map((c) => ({
-                  value: c.id,
-                  label: `${c.name} (${c.phone})`,
-                }))}
+                onChange={(val) => setSelectedCustomer(val)}
+                options={customerOptions}
+                emptyMessage="No clients found matching your search"
               />
             )}
           </div>
@@ -641,15 +674,15 @@ export default function AppointmentsPage() {
               onChange={(e) => setApptStartTime(e.target.value)}
               required
             />
-            <Select
-              label="Assign Staff Member"
-              placeholder="-- Select Staff --"
+            <SearchableSelect
+              label="Select Artist / Stylist"
+              placeholder="-- Select Artist --"
+              searchPlaceholder="Search artist by name or role..."
               value={selectedStaff}
-              onChange={(e) => setSelectedStaff(e.target.value)}
-              options={staffList.map((s) => ({
-                value: s.id,
-                label: `${s.name} (${s.role})`,
-              }))}
+              onChange={(val) => setSelectedStaff(val)}
+              options={staffOptions}
+              emptyMessage="No artists found matching your search"
+              required
             />
           </div>
 
@@ -666,38 +699,73 @@ export default function AppointmentsPage() {
               )}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto p-1 border border-stone-200 rounded-xl bg-stone-50/50">
-              {servicesList.map((svc) => {
-                const isChecked = selectedServices.includes(svc.id);
-                return (
-                  <label
-                    key={svc.id}
-                    className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
-                      isChecked
-                        ? 'bg-purple-50/90 border-[#7C3AED] text-stone-900 font-semibold'
-                        : 'bg-white border-stone-200 hover:border-stone-300 text-stone-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 truncate">
-                      <input
-                        type="checkbox"
-                        checked={isChecked}
-                        onChange={() => toggleService(svc.id)}
-                        className="rounded border-stone-300 text-[#7C3AED] focus:ring-[#7C3AED]"
-                      />
-                      <span className="truncate">{svc.name}</span>
-                    </div>
-                    <div className="text-right shrink-0 ml-2">
-                      <span className="text-stone-900 font-bold">
-                        {formatCurrency(svc.price)}
-                      </span>
-                      <span className="text-[10px] text-stone-400 block">
-                        {svc.duration}m
-                      </span>
-                    </div>
-                  </label>
-                );
-              })}
+            {/* Service Search Bar */}
+            <div className="relative mb-2">
+              <Search className="w-4 h-4 text-stone-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input
+                type="text"
+                value={serviceSearch}
+                onChange={(e) => setServiceSearch(e.target.value)}
+                placeholder="Search services (e.g. Haircut, Balayage, Manicure, Pedicure)..."
+                className="w-full pl-9 pr-8 py-1.5 text-xs text-stone-900 bg-white border border-stone-200 rounded-lg placeholder:text-stone-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all"
+              />
+              {serviceSearch && (
+                <button
+                  type="button"
+                  onClick={() => setServiceSearch('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto p-1.5 border border-stone-200 rounded-xl bg-stone-50/50 scrollbar-thin">
+              {filteredServicesList.length === 0 ? (
+                <div className="col-span-2 py-6 text-center text-xs text-stone-500 flex flex-col items-center justify-center gap-1">
+                  <Search className="w-4 h-4 text-stone-300" />
+                  <span>No treatments found matching &ldquo;{serviceSearch}&rdquo;</span>
+                </div>
+              ) : (
+                filteredServicesList.map((svc) => {
+                  const isChecked = selectedServices.includes(svc.id);
+                  return (
+                    <label
+                      key={svc.id}
+                      className={`flex items-center justify-between p-2.5 rounded-lg border text-xs cursor-pointer transition-all ${
+                        isChecked
+                          ? 'bg-purple-50/90 border-[#7C3AED] text-stone-900 font-semibold shadow-xs'
+                          : 'bg-white border-stone-200 hover:border-stone-300 text-stone-700'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 truncate flex-1">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleService(svc.id)}
+                          className="rounded border-stone-300 text-[#7C3AED] focus:ring-[#7C3AED]"
+                        />
+                        <div className="flex flex-col truncate">
+                          <span className="truncate">{svc.name}</span>
+                          {svc.category?.name && (
+                            <span className="text-[10px] text-stone-400 truncate">
+                              {svc.category.name}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0 ml-2">
+                        <span className="text-stone-900 font-bold">
+                          {formatCurrency(svc.price)}
+                        </span>
+                        <span className="text-[10px] text-stone-400 block">
+                          {svc.duration}m
+                        </span>
+                      </div>
+                    </label>
+                  );
+                })
+              )}
             </div>
           </div>
 

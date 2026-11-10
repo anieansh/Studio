@@ -1,6 +1,7 @@
 export * from './Button';
 export * from './Input';
 export * from './Select';
+export * from './SearchableSelect';
 export * from './SearchInput';
 export * from './DatePicker';
 export * from './Badge';
